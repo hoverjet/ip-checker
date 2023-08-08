@@ -3,7 +3,6 @@ services:
   web:
     build: .
     command: bundle exec puma -C config/puma.rb
-#    command: sleep infinity
     volumes:
       - .:/app
       - bundle_path:/usr/local/bundle
@@ -22,10 +21,7 @@ services:
       - POSTGRES_DB=ip_checker_db
   sidekiq:
     build: .
-#    command: bundle exec sidekiq -C config/sidekiq.yml
-#    command: bundle exec sidekiq -r config.ru -C config/sidekiq.yml
     command: bundle exec sidekiq -r ./boot.rb -C config/sidekiq.yml
-#    command: sleep infinity
     volumes:
       - .:/app
       - bundle_path:/usr/local/bundle

@@ -1,2 +1,4 @@
 # Ignore IDE settings
 .idea/
+
+.irb_history

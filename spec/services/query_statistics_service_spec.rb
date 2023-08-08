@@ -69,4 +69,69 @@ RSpec.describe QueryStatisticsService do
       expect(subject.failure).to eq('No records found in statistics')
     end
   end
+
+  context 'when IP was enabled only in a specific period' do
+    let(:enabled_start) { 5.days.ago }
+    let(:enabled_end) { 1.day.ago }
+    let(:time_from) { enabled_start.beginning_of_day }
+    let(:time_to) { enabled_end.end_of_day }
+
+    before do
+      create(:ip_enabled_history, ip: ip, enabled: true, changed_at: enabled_start)
+      create(:ip_enabled_history, ip: ip, enabled: false, changed_at: enabled_end)
+      create(:ping, ip: ip, rtt: 100.0, timestamp: 2.days.ago)
+    end
+
+    it 'considers pings only from the enabled period' do
+      result = subject.value!
+      expect(result[:avg_rtt]).to eq(100.0)
+    end
+  end
+
+  context 'when IP was enabled in two different periods' do
+    let(:enabled_start1) { 7.days.ago }
+    let(:enabled_end1) { 5.days.ago }
+    let(:enabled_start2) { 3.days.ago }
+    let(:enabled_end2) { 1.day.ago }
+    let(:time_from) { 7.days.ago.beginning_of_day }
+    let(:time_to) { 1.day.ago.end_of_day }
+
+    before do
+      create(:ip_enabled_history, ip: ip, enabled: true, changed_at: enabled_start1)
+      create(:ip_enabled_history, ip: ip, enabled: false, changed_at: enabled_end1)
+      create(:ip_enabled_history, ip: ip, enabled: true, changed_at: enabled_start2)
+      create(:ip_enabled_history, ip: ip, enabled: false, changed_at: enabled_end2)
+      create(:ping, ip: ip, rtt: 100.0, timestamp: 6.days.ago)
+      create(:ping, ip: ip, rtt: 50.0, timestamp: 2.days.ago)
+    end
+
+    it 'considers pings from both enabled periods' do
+      result = subject.value!
+      expect(result[:avg_rtt]).to eq(75.0) # Average of two pings from different periods
+    end
+  end
+
+  context 'when IP was enabled in two different periods, then was disabled, and now again enabled and has a ping' do
+    let(:enabled_start1) { 7.days.ago }
+    let(:enabled_end1) { 5.days.ago }
+    let(:enabled_start2) { 3.days.ago }
+    let(:enabled_end2) { 1.day.ago }
+    let(:time_from) { 7.days.ago.beginning_of_day }
+    let(:time_to) { Time.current }
+
+    before do
+      create(:ip_enabled_history, ip: ip, enabled: true, changed_at: enabled_start1)
+      create(:ip_enabled_history, ip: ip, enabled: false, changed_at: enabled_end1)
+      create(:ip_enabled_history, ip: ip, enabled: true, changed_at: enabled_start2)
+      create(:ip_enabled_history, ip: ip, enabled: false, changed_at: enabled_end2)
+      create(:ping, ip: ip, rtt: 100.0, timestamp: 6.days.ago)
+      create(:ping, ip: ip, rtt: 50.0, timestamp: 2.days.ago)
+      create(:ping, ip: ip, rtt: 30.0, timestamp: 6.hours.ago)
+    end
+
+    it 'considers pings from both enabled periods, including the recent one' do
+      result = subject.value!
+      expect(result[:avg_rtt]).to eq(60.0) # Average of three pings from different periods
+    end
+  end
 end

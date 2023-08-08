@@ -4,10 +4,20 @@ class QueryStatisticsService < BaseService
   option :time_to
 
   def call
+    enabled_intervals = IpEnabledHistory
+                              .select(:ip_id,
+                                      Sequel.as(:changed_at, :start_interval),
+                                      Sequel.as(Sequel.function(:LEAD, :changed_at).over(partition: :ip_id, order: :changed_at), :end_interval))
+                              .where(ip_id: ip_id, enabled: true)
+                              .where(Sequel.lit('changed_at >= ?', time_from))
+                              .where(Sequel.lit('changed_at <= ?', time_to))
+                              .as(:enabled_intervals)
+
+    dataset = Ping.join_table(:inner, enabled_intervals, ip_id: :ip_id)
+                  .where(Sequel.lit('pings.timestamp BETWEEN start_interval AND COALESCE(end_interval, ?)', time_to))
+                  .where(Sequel[:pings][:ip_id] => ip_id)
+
     percentile_expr = Sequel.lit('PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY rtt) AS median_rtt')
-    dataset = Ping.where(ip_id: ip_id)
-                  .where(Sequel.lit('timestamp >= ?', time_from))
-                  .where(Sequel.lit('timestamp <= ?', time_to))
     results = dataset.select(
       Sequel.function(:AVG, :rtt).as(:avg_rtt),
       Sequel.function(:MIN, :rtt).as(:min_rtt),
@@ -18,7 +28,6 @@ class QueryStatisticsService < BaseService
     ).first
 
     result = results.to_hash
-    # NOTE: for empty result all values will be nil
     return Failure('No records found in statistics') if result.values.all?(&:nil?)
 
     Success(result)
