@@ -1,0 +1,15 @@
+development:
+  adapter: postgres
+  host: db
+  database: ip_checker_db
+  user: user
+  password: password
+  port: 5432
+
+test:
+  adapter: postgres
+  host: db
+  database: ip_checker_test_db
+  user: user
+  password: password
+  port: 5432

@@ -1,0 +1,4 @@
+pings_job:
+#  cron: "* * * * *"
+  cron: "*/30 * * * * *"
+  class: "PingsWorker"

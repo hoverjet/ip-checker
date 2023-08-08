@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    command: bundle exec puma -C config/puma.rb
+#    command: sleep infinity
+    volumes:
+      - .:/app
+      - bundle_path:/usr/local/bundle
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+      - redis
+  db:
+    image: timescale/timescaledb:latest-pg15
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=user
+      - POSTGRES_DB=ip_checker_db
+  sidekiq:
+    build: .
+#    command: bundle exec sidekiq -C config/sidekiq.yml
+#    command: bundle exec sidekiq -r config.ru -C config/sidekiq.yml
+    command: bundle exec sidekiq -r ./boot.rb -C config/sidekiq.yml
+#    command: sleep infinity
+    volumes:
+      - .:/app
+      - bundle_path:/usr/local/bundle
+    depends_on:
+      - db
+      - redis
+  redis:
+    image: redis:latest
+    ports:
+      - '6379:6379'
+volumes:
+  bundle_path:
