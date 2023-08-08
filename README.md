@@ -6,18 +6,17 @@ This project is a solution for collecting statistics from a network of IP addres
 
 - **Language**: Ruby
 - **Framework**: Grape
-- **Database**: PostgreSQL (with hypertables), Redis
+- **Database**: PostgreSQL (with Timescale Hypertables), Redis
 - **ORM**: Sequel
 - **Testing**: RSpec
 - **Containerization**: Docker
 
 ## How It Works
 
-1. **Data Ingestion**: Collects ping data, such as Round-Trip Time (RTT), packet loss status, timestamps, etc.
+1. **Data Ingestion**: Periodically collects ping data, such as Round-Trip Time (RTT), packet loss status, timestamps, etc in background Sidekiq jobs.
 2. **Data Processing**: Processes and stores data in PostgreSQL, utilizing hypertables index for efficient time-series management.
 3. **Statistics Calculation**: Utilizes `QueryStatisticsService` for aggregating statistical information like average RTT, maximum/minimum RTT, median RTT, standard deviation of RTT, and loss percentage.
-4. **API Exposure**:
-## API Exposure
+4. **API Exposure**
 
 The API is designed to manage IP addresses, allowing enabling/disabling of statistics collection, retrieval of statistics, and deletion of IP addresses. It's built using the Grape framework.
 
